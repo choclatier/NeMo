@@ -127,6 +127,7 @@ class Exportable(ABC):
         my_args = locals()
         del my_args['self']
 
+
         qual_name = self.__module__ + '.' + self.__class__.__qualname__
         output_descr = qual_name + ' exported to ONNX'
 
@@ -158,13 +159,14 @@ class Exportable(ABC):
             # Run (posibly overridden) prepare method before calling forward()
             self._prepare_for_export(**my_args)
 
+            import ipdb; ipdb.set_trace()
             input_list = list(input_example)
             input_dict = {}
             # process possible kwargs
             if isinstance(input_list[-1], dict):
                 input_dict = input_list[-1]
                 input_list = input_list[:-1]
-
+    
             input_names = get_input_names(self.input_module)
             # remove unnecessary inputs for input_ports
             for name in self.disabled_deployment_input_names:
