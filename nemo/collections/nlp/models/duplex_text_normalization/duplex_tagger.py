@@ -26,6 +26,7 @@ import nemo.collections.nlp.data.text_normalization.constants as constants
 from nemo.collections.nlp.data.text_normalization import TextNormalizationTaggerDataset
 from nemo.collections.nlp.metrics.classification_report import ClassificationReport
 from nemo.collections.nlp.models.duplex_text_normalization.utils import has_numbers
+from nemo.core.classes.common import typecheck
 from nemo.collections.nlp.models.nlp_model import NLPModel
 from nemo.core.classes.common import PretrainedModelInfo
 from nemo.core.classes.exportable import Exportable
@@ -39,11 +40,11 @@ __all__ = ['DuplexTaggerModel']
 
 
 @experimental
-class DuplexTaggerModel(NLPModel, Exportable):
+class DuplexTaggerModel(NLPModel):
     """
     Transformer-based (duplex) tagger model for TN/ITN.
     """
-
+    
     def __init__(self, cfg: DictConfig, trainer: Trainer = None):
         self._tokenizer = AutoTokenizer.from_pretrained(cfg.tokenizer, add_prefix_space=True)
         super().__init__(cfg=cfg, trainer=trainer)
@@ -59,6 +60,12 @@ class DuplexTaggerModel(NLPModel, Exportable):
         # Language
         self.lang = cfg.get('lang', None)
 
+
+    @typecheck()
+    def forward(self, input_ids, attention_mask):
+        output =  self.model(input_ids=input_ids, attention_mask=input_ids)
+        return output
+
     # Training
     def training_step(self, batch, batch_idx):
         """
@@ -68,7 +75,7 @@ class DuplexTaggerModel(NLPModel, Exportable):
         num_labels = self.num_labels
 
         # Apply Transformer
-        tag_logits = self.model(batch['input_ids'], batch['attention_mask']).logits
+        tag_logits = self.forward(input_ids=batch['input_ids'], attention_mask=batch['attention_mask']).logits
 
         # Loss
         train_loss = self.loss_fct(tag_logits.view(-1, num_labels), batch['labels'].view(-1))
@@ -85,7 +92,7 @@ class DuplexTaggerModel(NLPModel, Exportable):
         passed in as `batch`.
         """
         # Apply Transformer
-        tag_logits = self.model(batch['input_ids'], batch['attention_mask']).logits
+        tag_logits = self.forward(input_ids=batch['input_ids'], attention_mask=batch['attention_mask']).logits
         tag_preds = torch.argmax(tag_logits, dim=2)
 
         # Update classification_report
@@ -292,6 +299,17 @@ class DuplexTaggerModel(NLPModel, Exportable):
         running_time = perf_counter() - start_time
         logging.info(f'Took {running_time} seconds')
         return dl
+
+    def input_example(self):
+        """
+        Generates input examples for tracing etc.
+        Returns:
+            A tuple of input examples.
+        """
+        sample = next(self.parameters())
+        input_ids = torch.randint(low=0, high=2048, size=(2, 16), device=sample.device)
+        attention_mask = torch.randint(low=0, high=1, size=(2, 16), device=sample.device)
+        return tuple([input_ids, attention_mask, attention_mask])
 
     @classmethod
     def list_available_models(cls) -> Optional[PretrainedModelInfo]:
