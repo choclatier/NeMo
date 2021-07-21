@@ -154,6 +154,7 @@ class Exportable(ABC):
 
             format = self.get_format(output)
 
+
             if input_example is None:
                 input_example = self._get_input_example()
 
