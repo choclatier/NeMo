@@ -56,6 +56,9 @@ class DuplexTaggerModel(NLPModel, Exportable):
         # setup to track metrics
         self.classification_report = ClassificationReport(self.num_labels, mode='micro', dist_sync_on_step=True)
 
+        # Language
+        self.lang = cfg.get('lang', None)
+
     # Training
     def training_step(self, batch, batch_idx):
         """
@@ -127,7 +130,7 @@ class DuplexTaggerModel(NLPModel, Exportable):
     def _infer(self, sents: List[List[str]], inst_directions: List[str]):
         """ Main function for Inference
         Args:
-            sents: A list of inputs tokenized by a basic tokenizer (e.g., using nltk.word_tokenize()).
+            sents: A list of inputs tokenized by a basic tokenizer.
             inst_directions: A list of str where each str indicates the direction of the corresponding instance (i.e., INST_BACKWARD for ITN or INST_FORWARD for TN).
 
         Returns:
@@ -280,6 +283,7 @@ class DuplexTaggerModel(NLPModel, Exportable):
             cfg.mode,
             cfg.get('do_basic_tokenize', False),
             cfg.get('tagger_data_augmentation', False),
+            cfg.lang,
         )
         data_collator = DataCollatorForTokenClassification(self._tokenizer)
         dl = torch.utils.data.DataLoader(
