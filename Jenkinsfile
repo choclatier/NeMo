@@ -59,10 +59,10 @@ pipeline {
       }
     }
 
-
+    // TODO: revert dev to release
     stage('NeMo Installation') {
       steps {
-        sh './reinstall.sh release'
+        sh './reinstall.sh dev'
       }
     }
 
